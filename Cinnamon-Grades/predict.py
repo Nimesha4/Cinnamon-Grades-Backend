@@ -20,7 +20,7 @@ if img is None:
     }))
     exit()
 
-model = YOLO("best.pt")
+model = YOLO("weights/yolov11-best.pt")
 
 results = model(image_path, conf=0.3, verbose=False)
 
