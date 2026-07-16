@@ -5,6 +5,10 @@ import json
 import cv2
 import logging
 
+import joblib
+import pandas as pd
+from datetime import datetime, timedelta
+
 # suppress YOLO logs
 logging.getLogger("ultralytics").setLevel(logging.ERROR)
 
@@ -111,6 +115,123 @@ else:
         "final_grade": final_grade,
         "details": dict(count),
         "message": "This bundle contains mixed cinnamon grades."
+    }
+
+# price prediction 
+
+try:
+
+    price_model = joblib.load("models/price_model.pkl")
+    grade_encoder = joblib.load("models/grade_encoder.pkl")
+    district_encoder = joblib.load("models/district_encoder.pkl")
+
+    grade_mapping = {
+        "Alba": "Alba",
+        "C4": "C-4",
+        "C5": "C-5",
+        "H2": "H-2"
+    }
+    model_grade = grade_mapping.get(final_grade, final_grade)
+
+    def predict_market(target_date, period_name):
+
+        year = target_date.year
+        month = target_date.month
+        week = target_date.isocalendar().week
+
+        predictions = []
+
+        for district in district_encoder.classes_:
+
+            # Skip non-market labels
+            if district in ["Average Price", "Highest Price"]:
+                continue
+
+            grade_value = grade_encoder.transform([model_grade])[0]
+            district_value = district_encoder.transform([district])[0]
+
+            df = pd.DataFrame([{
+                "Year": year,
+                "Month": month,
+                "Week": week,
+                "District": district_value,
+                "Grade": grade_value
+            }])
+
+            price = float(price_model.predict(df)[0])
+
+            predictions.append({
+                "district": district,
+                "predicted_price": round(price, 2)
+            })
+
+        predictions.sort(
+            key=lambda x: x["predicted_price"],
+            reverse=True
+        )
+
+        # Weekly date range
+        week_start = target_date - timedelta(days=target_date.weekday())
+        week_end = week_start + timedelta(days=6)
+
+        # Monthly date range
+        month_start = target_date.replace(day=1)
+
+        if target_date.month == 12:
+            month_end = target_date.replace(
+                year=target_date.year + 1,
+                month=1,
+                day=1
+            ) - timedelta(days=1)
+        else:
+            month_end = target_date.replace(
+                month=target_date.month + 1,
+                day=1
+            ) - timedelta(days=1)
+
+        if period_name == "next_month":
+            period = f"{month_start.strftime('%d %b %Y')} - {month_end.strftime('%d %b %Y')}"
+        else:
+            period = f"{week_start.strftime('%d %b %Y')} - {week_end.strftime('%d %b %Y')}"
+
+        return {
+            "forecast_period": period,
+            "best_market": {
+                "district": predictions[0]["district"],
+                "predicted_price": predictions[0]["predicted_price"],
+                "currency": "LKR/kg"
+            },
+            "recommendation": f"Based on historical market trends, selling in {predictions[0]['district']} during this period is expected to provide the highest market price.",
+            "market_predictions": predictions
+        }
+
+    today = datetime.now()
+
+    next_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+    output["market_price_forecast"] = {
+
+        "this_week": predict_market(
+            today,
+            "this_week"
+        ),
+
+        "next_week": predict_market(
+            today + timedelta(days=7),
+            "next_week"
+        ),
+
+        "next_month": predict_market(
+            next_month,
+            "next_month"
+        )
+
+    }
+
+except Exception as e:
+
+    output["market_price_forecast"] = {
+        "error": str(e)
     }
 
 # final output
