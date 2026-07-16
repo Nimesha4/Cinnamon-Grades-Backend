@@ -5,6 +5,13 @@ const detectionSchema = new mongoose.Schema({
   status: String,
   final_grade: String,
   details: Object,
+
+  //  Market Price Forecast
+  market_price_forecast: {
+    type: Object,
+    default: null,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

@@ -14,6 +14,9 @@ exports.uploadImage = async (req, res) => {
       status: result.status,
       final_grade: result.final_grade,
       details: result.details,
+
+      // Save Market Price Forecast
+      market_price_forecast: result.market_price_forecast || null,
     });
 
     await newDetection.save();

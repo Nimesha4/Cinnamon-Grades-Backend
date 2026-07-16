@@ -105,7 +105,7 @@ if len(count) == 1:
         "final_grade": final_grade,
         "details": dict(count)
     }
-
+    
 else:
 
     final_grade = count.most_common(1)[0][0]
@@ -116,6 +116,17 @@ else:
         "details": dict(count),
         "message": "This bundle contains mixed cinnamon grades."
     }
+
+# Don't predict prices for mixed-grade bundles
+if output["status"] == "Mixed Grades Detected":
+
+    output["market_price_forecast"] = {
+        "available": False,
+        "message": "Market price forecasting is available only for single-grade cinnamon bundles. Please upload a single-grade bundle to receive an accurate price prediction and market recommendation."
+    }
+
+    print(json.dumps(output))
+    exit()
 
 # price prediction 
 
