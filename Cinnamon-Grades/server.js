@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const detectionRoutes = require("./routes/detectionRoutes");
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -14,13 +17,17 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI, {
   dbName: "cinnamonData",
 })
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+.then(() => console.log("MongoDB Connected"))
+.catch(err => console.log(err));
 
 // Routes
 app.get("/", (req, res) => {
   res.send("Cinnamon Backend Running...");
 });
+
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use("/", detectionRoutes);
 
