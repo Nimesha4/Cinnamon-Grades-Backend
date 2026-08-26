@@ -1,5 +1,5 @@
 const Detection = require("../models/Detection");
-const { runYOLO } = require("../services/yoloService");
+const { runYOLO } = require("../Services/yoloService");
 
 // =====================
 // Upload Image
