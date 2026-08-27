@@ -3,3 +3,5 @@ opencv-python-headless
 joblib
 pandas
 scikit-learn
+xgboost
+torch<2.6
