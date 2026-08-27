@@ -1,15 +1,33 @@
 const Detection = require("../models/Detection");
 const { runYOLO } = require("../Services/yoloService");
+const fs = require("fs");
+const supabase = require("../config/supabase");
 
 // =====================
 // Upload Image
 // =====================
 exports.uploadImage = async (req, res) => {
   try {
-    const imagePath = req.file.path;
+   const imagePath = req.file.path;
 
-    // Call YOLO service
-    const result = await runYOLO(imagePath);
+  const fileName = `${Date.now()}-${req.file.originalname}`;
+
+  const { error } = await supabase.storage
+    .from("uploads")
+    .upload(`images/${fileName}`, fs.readFileSync(imagePath), {
+      contentType: req.file.mimetype,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data: publicUrl } = supabase.storage
+    .from("uploads")
+    .getPublicUrl(`images/${fileName}`);
+
+  // Call YOLO service using temporary file
+  const result = await runYOLO(imagePath);
 
     console.log("JWT User:", req.user);
 
@@ -17,7 +35,7 @@ exports.uploadImage = async (req, res) => {
     const newDetection = new Detection({
       userId: req.user.id,
 
-      image: imagePath,
+      image: publicUrl.publicUrl,
       status: result.status,
       final_grade: result.final_grade,
       details: result.details,
